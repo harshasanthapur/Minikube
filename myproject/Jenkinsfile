@@ -1,0 +1,62 @@
+pipeline {
+    agent any
+    environment {
+        REGISTRY = 'harshasanthapur123'
+        IMAGE_NAME = 'django-app'
+        KUBECONFIG = credentials('kubeconfig-credentials-id')  // Use Jenkins credentials plugin to store kubeconfig
+    }
+    stages {
+        stage('Clone Repository') {
+            steps {
+                git 'https://github.com/harshasanthapur/your-django-repo.git'  // Update with your repository URL
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    docker.build("${REGISTRY}/${IMAGE_NAME}:latest")
+                }
+            }
+        }
+
+        stage('Run Unit Tests') {
+            steps {
+                script {
+                    docker.image("${REGISTRY}/${IMAGE_NAME}:latest").inside {
+                        sh 'python manage.py test'
+                    }
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                script {
+                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub-credentials-id') {
+                        docker.image("${REGISTRY}/${IMAGE_NAME}:latest").push()
+                    }
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                script {
+                    sh 'kubectl --kubeconfig=$KUBECONFIG apply -f k8s/deployment.yaml'
+                    sh 'kubectl --kubeconfig=$KUBECONFIG apply -f k8s/service.yaml'
+                    sh 'kubectl --kubeconfig=$KUBECONFIG apply -f k8s/ingress.yaml'
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Application deployed successfully!'
+        }
+        failure {
+            echo 'There was an error during deployment.'
+        }
+    }
+}
