@@ -8,7 +8,7 @@ pipeline {
     stages {
         stage('Clone Repository') {
             steps {
-                git 'https://github.com/harshasanthapur/your-django-repo.git'  // Update with your repository URL
+                git 'https://github.com/harshasanthapur/Minikube.git'  // Update with your repository URL
             }
         }
 
